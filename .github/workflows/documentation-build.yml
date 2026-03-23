@@ -1,0 +1,64 @@
+name: Build the Documentation
+
+on:
+  workflow_call:
+    inputs:
+      container-image:
+        type: string
+        required: false
+    outputs:
+      cache-key:
+        description: "The cache key used for the documentation"
+        value: ${{ jobs.documentation.outputs.cache-key }}
+
+jobs:
+  documentation:
+    runs-on: ubuntu-24.04
+    container:
+      image: ${{ inputs.container-image }}
+    outputs:
+      cache-key: ${{ steps.compute-cache-key.outputs.key }}
+
+    steps:
+    - name: install packages for checkout
+      run: |
+        if type sudo; then
+          SUDO=sudo
+        fi
+        ${SUDO} apt-get -y update
+        DEBIAN_FRONTEND=noninteractive ${SUDO} apt-get -y -q install git
+
+    - name: checkout sources
+      uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
+        submodules: recursive
+
+    - name: compute cache key
+      id: compute-cache-key
+      run: |
+        KEY="documentation-${{ hashFiles('.github/workflows/documentation-build.yml', 'Documentation') }}"
+        echo "key=$KEY" >> $GITHUB_OUTPUT
+        echo "Computed cache key: $KEY"
+
+    - name: cache the documentation
+      id: cache-documentation
+      uses: actions/cache@v5
+      with:
+        path: Documentation/output
+        key: ${{ steps.compute-cache-key.outputs.key }}
+        enableCrossOsArchive: true
+
+    - name: install packages for the build
+      if: steps.cache-documentation.outputs.cache-hit != 'true'
+      run: |
+        if type sudo; then
+          SUDO=sudo
+        fi
+        DEBIAN_FRONTEND=noninteractive ${SUDO} apt-get -y -q install make asciidoctor docbook-xml ruby-asciidoctor-pdf w3m
+
+    - name: build the documentation
+      if: steps.cache-documentation.outputs.cache-hit != 'true'
+      run: |
+        git config --global --add safe.directory $GITHUB_WORKSPACE
+        make -C Documentation

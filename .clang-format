@@ -1,0 +1,23 @@
+AccessModifierOffset: -8 # so public: and private: stays at the left site
+AlignEscapedNewlinesLeft: true
+AllowAllParametersOfDeclarationOnNextLine: false
+BinPackParameters: true
+BreakBeforeBinaryOperators: false
+BreakBeforeBraces: Linux
+BreakBeforeTernaryOperators: false
+BreakConstructorInitializersBeforeComma: false
+ColumnLimit: 0
+ConstructorInitializerAllOnOneLineOrOnePerLine: true
+ConstructorInitializerIndentWidth: 8
+ContinuationIndentWidth: 8
+ForEachMacros: [ 'for_each_line' ]
+IndentFunctionDeclarationAfterType: false #personal taste, good for long methods
+IndentWidth: 8
+MaxEmptyLinesToKeep: 2
+NamespaceIndentation: All
+PointerBindsToType: false
+SpaceBeforeAssignmentOperators: true
+# SpaceBeforeParens doesn't work --> SpaceBeforeParens: ControlStatements
+SpacesBeforeTrailingComments: 1
+SpacesInParentheses: false
+UseTab: Always

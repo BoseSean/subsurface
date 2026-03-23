@@ -1,0 +1,87 @@
+name: Publish the Documentation
+
+on:
+  push:
+    branches:
+    - master
+    paths:
+    - Documentation/**
+    - .github/workflows/**
+  pull_request:
+    branches:
+    - master
+    paths:
+    - Documentation/**
+    - .github/workflows/**
+
+env:
+  RELEASE_PUBLISHER: "true"
+
+jobs:
+  build-documentation:
+    uses: ./.github/workflows/documentation-build.yml
+
+  publish-documentation:
+    needs: build-documentation
+    outputs:
+      release_tag: v${{ steps.version_number.outputs.version }}
+    runs-on: ubuntu-22.04
+
+    steps:
+    - name: checkout sources
+      uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
+        submodules: recursive
+
+    - name: load the documentation from cache
+      id: load-cache
+      uses: actions/cache@v5
+      with:
+        path: Documentation/output
+        key: documentation-${{ hashFiles('.github/workflows/documentation-build.yml', 'Documentation') }}
+        enableCrossOsArchive: true
+        fail-on-cache-miss: true
+
+    - name: set the version information
+      id: version_number
+      uses: ./.github/actions/manage-version
+      with:
+        nightly-builds-secret: ${{ secrets.NIGHTLY_BUILDS }}
+
+    - name: publish pull request artifacts
+      if: github.event_name == 'pull_request'
+      uses: actions/upload-artifact@v7
+      with:
+        name: Subsurface-Documentation-${{ steps.version_number.outputs.version }}
+        path: |
+          Documentation/output
+          SupportedDivecomputers.html
+
+    # only publish a 'release' on push events (those include merging a PR)
+    - name: Create compressed archive (tar.gz)
+      if: github.event_name == 'push'
+      run: |
+        cp SupportedDivecomputers.html Documentation/output/
+        tar -czvf Subsurface-Documentation-${{ steps.version_number.outputs.version }}.tar.gz -C Documentation/output/ .
+
+    - name: upload documentation
+      if: github.event_name == 'push'
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: v${{ steps.version_number.outputs.version }}
+        repository:  ${{ github.repository_owner }}/nightly-builds
+        token: ${{ secrets.NIGHTLY_BUILDS }}
+        draft: true
+        prerelease: false
+        fail_on_unmatched_files: true
+        files: |
+          Subsurface-Documentation-${{ steps.version_number.outputs.version }}.tar.gz
+
+  notify-release-coordinator:
+    if: always()
+    needs: publish-documentation
+    uses: ./.github/workflows/notify-release-coordinator.yml
+    with:
+      release_tag: ${{ needs.publish-documentation.outputs.release_tag }}
+      conclusion: ${{ needs.publish-documentation.result }}

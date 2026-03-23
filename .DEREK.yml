@@ -1,0 +1,18 @@
+maintainers:
+ - dirkhh
+ - neolit123
+ - atdotde
+ - torvalds
+ - glance-
+ - mturkia
+ - janmulder
+ - tcanabrava
+ - bstoeger
+ - sfuchs79
+ - janiversen
+ - jbygdell
+
+features:
+ - dco_check
+ - comments
+ - pr_description_required

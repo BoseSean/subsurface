@@ -12,8 +12,9 @@ export class GitService {
   }
 
   async init(): Promise<void> {
-    const isRepo = await git.status({ fs: this.fs, dir: this.dir }).catch(() => null);
-    if (!isRepo) {
+    try {
+      await git.resolveRef({ fs: this.fs, dir: this.dir, ref: 'HEAD' });
+    } catch {
       await git.init({ fs: this.fs, dir: this.dir });
     }
   }

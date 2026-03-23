@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Dive } from './types';
 import { db } from './services/storage/LocalStorageService';
 import { DiveList } from './components/DiveList/DiveList';

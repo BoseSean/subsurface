@@ -4,10 +4,10 @@ import { xmlParser, type DiveLog } from '../transform/XmlParser';
 import type { Dive } from '../../types';
 
 export class SyncManager {
-  private autoSync: boolean = false;
+  
   private gitLocalOnly: boolean = true;
 
-  async initialize(url: string, email?: string, password?: string): Promise<void> {
+  async initialize(url: string): Promise<void> {
     await gitService.init();
     try {
       // First try to read local git

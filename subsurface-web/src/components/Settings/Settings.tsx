@@ -9,7 +9,7 @@ interface SettingsProps {
 export const Settings: React.FC<SettingsProps> = ({ onClose }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [pinOrPassword, setPinOrPassword] = useState('');
+  
   const [repoUrl, setRepoUrl] = useState('https://cloud.subsurface-divelog.org/git');
   const [isSyncing, setIsSyncing] = useState(false);
   const [message, setMessage] = useState('');
@@ -43,7 +43,7 @@ export const Settings: React.FC<SettingsProps> = ({ onClose }) => {
       await db.metadata.put({ key: 'cloudUrl', value: repoUrl });
       
       // Attempt initialization and sync
-      await syncManager.initialize(fullUrl, email, password);
+      await syncManager.initialize(fullUrl);
       const result = await syncManager.syncWithCloud(fullUrl, email, password);
       
       setMessage(result.status === 'success' ? '✅ Synced successfully!' : `Status: ${result.status}`);

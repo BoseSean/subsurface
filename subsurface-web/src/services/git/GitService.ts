@@ -19,25 +19,27 @@ export class GitService {
     }
   }
 
-  async clone(url: string, corsProxy?: string): Promise<void> {
+  async clone(url: string, corsProxy?: string, onAuth?: any): Promise<void> {
     await git.clone({
       fs: this.fs,
       http,
       dir: this.dir,
       url,
       corsProxy,
+      onAuth,
       singleBranch: true,
       depth: 1
     });
   }
 
-  async fetch(url: string, onAuth?: any): Promise<void> {
+  async fetch(url: string, onAuth?: any, corsProxy?: string): Promise<void> {
     await git.fetch({
       fs: this.fs,
       http,
       dir: this.dir,
       remote: 'origin',
       url,
+      corsProxy,
       onAuth
     });
   }
@@ -51,7 +53,7 @@ export class GitService {
     });
   }
 
-  async push(url: string, onAuth?: any): Promise<void> {
+  async push(url: string, onAuth?: any, corsProxy?: string): Promise<void> {
     await git.push({
       fs: this.fs,
       http,
@@ -59,13 +61,13 @@ export class GitService {
       remote: 'origin',
       ref: 'master',
       url,
+      corsProxy,
       onAuth
     });
   }
 
   async readFile(path: string): Promise<string> {
-    const data = await this.fs.promises.readFile(`${this.dir}/${path}`, 'utf8');
-    return data;
+    return await this.fs.promises.readFile(`${this.dir}/${path}`, 'utf8');
   }
 
   async writeFile(path: string, content: string): Promise<void> {

@@ -4,22 +4,21 @@ import { xmlParser, type DiveLog } from '../transform/XmlParser';
 import type { Dive } from '../../types';
 
 export class SyncManager {
-  
-  private gitLocalOnly: boolean = true;
 
-  async initialize(url: string): Promise<void> {
+  async initialize(url: string, email?: string, password?: string): Promise<void> {
     await gitService.init();
     try {
-      // First try to read local git
       const localData = await gitService.readFile('dives.xml').catch(() => null);
       if (!localData && url) {
-        // If no local, clone from cloud
-        await gitService.clone(url, 'https://cors.isomorphic-git.org');
+        const onAuth = () => ({ username: email, password });
+        await gitService.clone(url, 'https://cors.isomorphic-git.org', onAuth);
         const remoteData = await gitService.readFile('dives.xml');
         await this.importToLocalDb(remoteData);
       }
     } catch (e) {
       console.error('Git init/clone failed:', e);
+      await gitService.init(); // Recreate .git if clone deleted it
+      throw e;
     }
   }
 
@@ -44,29 +43,17 @@ export class SyncManager {
   }
 
   async syncWithCloud(url: string, email?: string, password?: string): Promise<any> {
-    // 1. Get current Dexie data
     const localDives = await db.dives.toArray();
-
-    // 2. Commit to local git
     await this.saveChangesLocal(localDives);
 
-    if (this.gitLocalOnly) return { status: 'local-only' };
-
-    // 3. Fetch from remote
     const onAuth = () => ({ username: email, password });
-    await gitService.fetch(url, onAuth);
-
-    // 4. Merge
+    await gitService.fetch(url, onAuth, 'https://cors.isomorphic-git.org');
     await gitService.merge();
+    await gitService.push(url, onAuth, 'https://cors.isomorphic-git.org');
 
-    // 5. Push
-    await gitService.push(url, onAuth);
-
-    // 6. Read merged data and update Dexie
     const mergedData = await gitService.readFile('dives.xml');
     await this.importToLocalDb(mergedData);
 
-    // Clear unsynced flags
     const updatedDives = await db.dives.toArray();
     for (const dive of updatedDives) {
       if (dive._unsynced) {

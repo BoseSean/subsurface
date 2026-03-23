@@ -9,7 +9,6 @@ interface SettingsProps {
 export const Settings: React.FC<SettingsProps> = ({ onClose }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  
   const [repoUrl, setRepoUrl] = useState('https://cloud.subsurface-divelog.org/git');
   const [isSyncing, setIsSyncing] = useState(false);
   const [message, setMessage] = useState('');
@@ -31,8 +30,6 @@ export const Settings: React.FC<SettingsProps> = ({ onClose }) => {
     
     try {
       // Build the user-specific repo URL based on email
-      // Format: https://cloud.subsurface-divelog.org/git/email%40example.com[some-id]
-      // For testing, we just use the email directly if it's the standard server
       const encodedEmail = encodeURIComponent(email);
       let fullUrl = repoUrl;
       if (repoUrl === 'https://cloud.subsurface-divelog.org/git' || repoUrl === 'https://cloud.subsurface-divelog.org/git/') {
@@ -43,22 +40,27 @@ export const Settings: React.FC<SettingsProps> = ({ onClose }) => {
       await db.metadata.put({ key: 'cloudUrl', value: repoUrl });
       
       // Attempt initialization and sync
-      await syncManager.initialize(fullUrl);
+      await syncManager.initialize(fullUrl, email, password);
       const result = await syncManager.syncWithCloud(fullUrl, email, password);
       
       setMessage(result.status === 'success' ? '✅ Synced successfully!' : `Status: ${result.status}`);
     } catch (error: any) {
       console.error(error);
-      setMessage(`❌ Sync failed: ${error.message || 'Unknown error'}`);
+      setMessage(`❌ Sync failed: ${error.message || 'Unknown error. Check console.'}`);
     } finally {
       setIsSyncing(false);
     }
   };
 
   const handleClearData = async () => {
-    if (window.confirm('Are you sure you want to delete ALL local data? This cannot be undone.')) {
+    if (window.confirm('Are you sure you want to delete ALL local data and cloud credentials? This cannot be undone.')) {
       await db.dives.clear();
       await db.metadata.clear();
+      // Clear indexeddb used by lightning-fs
+      try {
+        indexedDB.deleteDatabase('subsurface-cloud');
+        indexedDB.deleteDatabase('subsurface-cloud_lock');
+      } catch (e) {}
       setMessage('✅ All local data cleared.');
       setTimeout(() => window.location.reload(), 1000);
     }
